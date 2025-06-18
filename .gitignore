@@ -1,0 +1,7 @@
+ckpts
+*.log
+*.pyc
+*.json
+*.out
+train_logs
+wandb

@@ -12,6 +12,7 @@ from accelerate import Accelerator
 from transformers import set_seed, get_cosine_schedule_with_warmup
 import shutil
 import json
+from huggingface_hub import snapshot_download
 import traceback
 from jinja2 import Template
 
@@ -191,17 +192,24 @@ def train(args):
                 model.save_pretrained(output_dir,state_dict=accelerator.get_state_dict(model))
             tokenizer.save_pretrained(output_dir)
             copy_files = []
-            for item in os.listdir(args.model_path):
-                if os.path.exists(os.path.join(output_dir,item)):
+
+            if os.path.isdir(args.model_path):
+                model_source_path = args.model_path
+            else:
+                model_source_path = snapshot_download(repo_id=args.model_path)
+
+            for item in os.listdir(model_source_path):
+                if os.path.exists(os.path.join(output_dir, item)):
                     continue
                 if item.startswith("pytorch_model") and item.endswith(".bin"):
                     continue
                 if item.endswith(".index.json") or item.endswith(".safetensors"):
                     continue
-                s = os.path.join(args.model_path, item)
+                s = os.path.join(model_source_path, item)
                 if os.path.isfile(s):
-                    shutil.copy(s, os.path.join(output_dir,item))
+                    shutil.copy(s, os.path.join(output_dir, item))
                 copy_files.append(item)
+
             print(f'huggingface model save in {output_dir}, copy file:{copy_files}')
 
         if accelerator.state.deepspeed_plugin.zero_stage==3:
@@ -250,7 +258,6 @@ def train(args):
                     'acc': acc,
                     'lr': lr_scheduler.get_last_lr()[0]
                 }, step=global_step)
-
         accelerator.wait_for_everyone()
         save_checkpoint(epoch, batch_cnt, global_step)
 
@@ -268,16 +275,16 @@ if __name__ == '__main__':
 
     # Training Args
     parser.add_argument('--output_dir', default='./ckpts', type=str)
-    parser.add_argument('--max_ckpts', default=2, type=int)
+    parser.add_argument('--max_ckpts', default=5, type=int)
     parser.add_argument('--log_dir', default='./train_logs', type=str)
     parser.add_argument('--max_seq_len', default=8192, type=int)
     parser.add_argument('--gradient_checkpointing', action='store_true')
     parser.add_argument('--gradient_accumulation_steps', default=8, type=int)
-    parser.add_argument('--train_bsz_per_gpu', default=2, type=int)
+    parser.add_argument('--train_bsz_per_gpu', default=8, type=int)
     parser.add_argument('--weight_decay', default=0.1, type=float)
     parser.add_argument('--learning_rate', default=5e-6, type=float)
     parser.add_argument('--warmup_rates', default=0.05, type=float)
-    parser.add_argument('--n_epochs', default=3, type=int)
+    parser.add_argument('--n_epochs', default=5, type=int)
 
     # Other Args
     parser.add_argument('--seed', default=42, type=int)
