@@ -7,9 +7,10 @@
 #SBATCH --time=2:30:00
 
 log_num=0
-model_name="/mimer/NOBACKUP/groups/bloom/shenghui/HuatuoGPT-o1/ckpts/sft_stage1/checkpoint-721"
-# model_name="Qwen/Qwen3-0.6B"
-# model_name="Qwen/Qwen3-4B"
+model_name="/mimer/NOBACKUP/groups/bloom/shenghui/HuatuoGPT-o1/ckpts/sft_stage1/checkpoint-441"
+model_name="/mimer/NOBACKUP/groups/bloom/shenghui/HuatuoGPT-o1/trained_full_funing/checkpoint-3696"
+model_name="unsloth/Llama-3.2-3B-Instruct"
+# model_name="meta-llama/Llama-3.2-3B-Instruct"
 # model_name="meta-llama/Llama-3.2-1B-Instruct"
 # model_name="meta-llama/Llama-3.2-1B-Instruct"
 # model_name="Qwen/Qwen2.5-7B-Instruct"

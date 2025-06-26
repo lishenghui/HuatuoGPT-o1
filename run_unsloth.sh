@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -A NAISS2024-22-1394 -p alvis
-#SBATCH -N 1 --gpus-per-node=A40:4
+#SBATCH -N 1 --gpus-per-node=A100:4
 #SBATCH --job-name=paaa
 #SBATCH --tasks-per-node=1
 #SBATCH --exclude=alvis3-08
@@ -9,11 +9,7 @@
 # Qwen/Qwen3-0.6B
 # meta-llama/Llama-3.1-8B-Instruct
 
-accelerate launch --config_file ./configs/deepspeed_zero3.yaml \
-    --num_processes 4  \
-    --num_machines 1 \
-    --machine_rank 0 \
-    --deepspeed_multinode_launcher standard sft_trainer_version.py \
+python sft_trainer_version.py \
     --model_path meta-llama/Llama-3.2-3B-Instruct \
     --peft_method lora \
     --data_path medical_o1_sft_mix.json
