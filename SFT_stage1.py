@@ -14,7 +14,9 @@ import shutil
 import json
 import traceback
 from jinja2 import Template
-
+import shutil
+# from huggingface_hub.utils import is_hf_endpoint_set, HfHubHTTPError
+            
 from transformers import AutoModelForCausalLM, AutoTokenizer
 os.umask(0)
 
@@ -190,18 +192,40 @@ def train(args):
             if accelerator.state.deepspeed_plugin.zero_stage!=3:
                 model.save_pretrained(output_dir,state_dict=accelerator.get_state_dict(model))
             tokenizer.save_pretrained(output_dir)
+            # import os
             copy_files = []
-            for item in os.listdir(args.model_path):
-                if os.path.exists(os.path.join(output_dir,item)):
-                    continue
-                if item.startswith("pytorch_model") and item.endswith(".bin"):
-                    continue
-                if item.endswith(".index.json") or item.endswith(".safetensors"):
-                    continue
-                s = os.path.join(args.model_path, item)
-                if os.path.isfile(s):
-                    shutil.copy(s, os.path.join(output_dir,item))
-                copy_files.append(item)
+
+            # 简单判断是否为 Hugging Face Hub 模型
+            is_hf_model = '/' in args.model_path and not os.path.isdir(args.model_path)
+
+            if not is_hf_model:
+                for item in os.listdir(args.model_path):
+                    if os.path.exists(os.path.join(output_dir, item)):
+                        continue
+                    if item.startswith("pytorch_model") and item.endswith(".bin"):
+                        continue
+                    if item.endswith(".index.json") or item.endswith(".safetensors"):
+                        continue
+                    s = os.path.join(args.model_path, item)
+                    if os.path.isfile(s):
+                        shutil.copy(s, os.path.join(output_dir, item))
+                    copy_files.append(item)
+            else:
+                print(f"Skipping file copy because {args.model_path} is a Hugging Face model ID.")
+
+            # copy_files = []
+            # for item in os.listdir(args.model_path):
+            #     if os.path.exists(os.path.join(output_dir,item)):
+            #         continue
+            #     if item.startswith("pytorch_model") and item.endswith(".bin"):
+            #         continue
+            #     if item.endswith(".index.json") or item.endswith(".safetensors"):
+            #         continue
+            #     s = os.path.join(args.model_path, item)
+            #     if os.path.isfile(s):
+            #         shutil.copy(s, os.path.join(output_dir,item))
+            #     copy_files.append(item)
+
             print(f'huggingface model save in {output_dir}, copy file:{copy_files}')
 
         if accelerator.state.deepspeed_plugin.zero_stage==3:
@@ -273,7 +297,7 @@ if __name__ == '__main__':
     parser.add_argument('--max_seq_len', default=8192, type=int)
     parser.add_argument('--gradient_checkpointing', action='store_true')
     parser.add_argument('--gradient_accumulation_steps', default=8, type=int)
-    parser.add_argument('--train_bsz_per_gpu', default=2, type=int)
+    parser.add_argument('--train_bsz_per_gpu', default=8, type=int)
     parser.add_argument('--weight_decay', default=0.1, type=float)
     parser.add_argument('--learning_rate', default=5e-6, type=float)
     parser.add_argument('--warmup_rates', default=0.05, type=float)
